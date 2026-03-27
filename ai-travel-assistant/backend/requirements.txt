@@ -1,0 +1,12 @@
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-dotenv==1.0.0
+pydantic>=2.5.0
+pydantic-core>=2.14.6
+httpx==0.25.1
+zai-sdk==0.2.2
+openai==1.35.14
+langchain==0.1.20
+langchain-openai==0.1.6
+chromadb==0.4.24
+python-multipart==0.0.6

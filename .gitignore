@@ -1,0 +1,36 @@
+# 依赖文件
+node_modules/
+pip-delete-this-directory.txt
+
+# 环境变量文件
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 日志文件
+*.log
+logs/
+
+# 编辑器文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统文件
+Thumbs.db
+.DS_Store
+
+# 构建文件
+dist/
+build/
+
+# 虚拟环境
+venv/
+env/
+
+# 向量数据库
+vector_db/

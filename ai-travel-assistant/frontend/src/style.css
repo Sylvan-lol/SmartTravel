@@ -1,0 +1,24 @@
+:root {
+  --primary-color: #3b82f6;
+  --bg-color: #f5f7fa;
+  --chat-bg: #ffffff;
+  --user-bubble: #3b82f6;
+  --assistant-bubble: #e5e7eb;
+  --border-radius: 12px;
+}
+
+body {
+  background-color: var(--bg-color);
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}

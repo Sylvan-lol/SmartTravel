@@ -1,0 +1,1086 @@
+以下是完整的调用示例，帮助您快速上手 GLM-4.7-Flash 模型。
+cURL
+Python
+Java
+Python(旧)
+安装 SDK
+# 安装最新版本
+pip install zai-sdk
+# 或指定版本
+pip install zai-sdk==0.2.2
+验证安装
+import zai
+print(zai.__version__)
+基础调用
+from zai import ZhipuAiClient
+
+client = ZhipuAiClient(api_key="your-api-key")  # 请填写您自己的 API Key
+
+response = client.chat.completions.create(
+    model="glm-4.7-flash",
+    messages=[
+        {"role": "user", "content": "作为一名营销专家，请为我的产品创作一个吸引人的口号"},
+        {"role": "assistant", "content": "当然，要创作一个吸引人的口号，请告诉我一些关于您产品的信息"},
+        {"role": "user", "content": "智谱AI开放平台"}
+    ],
+    thinking={
+        "type": "enabled",    # 启用深度思考模式
+    },
+    max_tokens=65536,          # 最大输出 tokens
+    temperature=1.0           # 控制输出的随机性
+)
+
+# 获取完整回复
+print(response.choices[0].message)
+流式调用
+from zai import ZhipuAiClient
+
+client = ZhipuAiClient(api_key="your-api-key")  # 请填写您自己的 API Key
+
+response = client.chat.completions.create(
+    model="glm-4.7-flash",
+    messages=[
+        {"role": "user", "content": "作为一名营销专家，请为我的产品创作一个吸引人的口号"},
+        {"role": "assistant", "content": "当然，要创作一个吸引人的口号，请告诉我一些关于您产品的信息"},
+        {"role": "user", "content": "智谱AI开放平台"}
+        ],
+    thinking={
+        "type": "enabled",    # 启用深度思考模式
+    },
+    stream=True,              # 启用流式输出
+    max_tokens=65536,          # 最大输出tokens
+    temperature=1.0           # 控制输出的随机性
+)
+
+# 流式获取回复
+for chunk in response:
+    if chunk.choices[0].delta.reasoning_content:
+    print(chunk.choices[0].delta.reasoning_content, end='', flush=True)
+
+    if chunk.choices[0].delta.content:
+    print(chunk.choices[0].delta.content, end='', flush=True)
+我的apikey是：5fefe8557d4c453683154948e575f451.DVSwLuHmxa6yW73Y
+
+项目提示词（参考代码，请勿照搬，需检查是否正确和符合逻辑才可写入项目！）：
+好的，我将为你构建一个企业级全栈项目：AI出行助手。后端使用 FastAPI + LangChain + OpenRouter（兼容 OpenAI 接口），实现智能工具调用（天气查询、路线规划）；前端使用 Vue3 + 高德地图 JS API，实现对话式交互并在气泡内展示地图导航。
+
+由于单次输出限制，我将分步输出完整代码。你现在看到的是 第一部分：项目结构与后端核心代码。
+
+项目整体结构
+text
+ai-travel-assistant/
+├── backend/
+│   ├── app/
+│   │   ├── __init__.py
+│   │   ├── main.py              # FastAPI 入口
+│   │   ├── config.py            # 环境变量配置
+│   │   ├── models/
+│   │   │   └── schemas.py       # Pydantic 模型
+│   │   ├── services/
+│   │   │   ├── ai_service.py    # AI 对话与工具调用
+│   │   │   ├── weather_service.py
+│   │   │   └── map_service.py   # 高德导航
+│   │   └── utils/
+│   │       └── logger.py
+│   ├── requirements.txt
+│   └── .env.example
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── ChatWindow.vue
+│   │   │   ├── MessageBubble.vue
+│   │   │   └── MapView.vue
+│   │   ├── services/
+│   │   │   └── api.js
+│   │   ├── App.vue
+│   │   ├── main.js
+│   │   └── style.css
+│   ├── index.html
+│   ├── package.json
+│   └── vite.config.js
+└── README.md
+1. 后端依赖（requirements.txt）
+txt
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-dotenv==1.0.0
+pydantic==2.4.2
+httpx==0.25.1
+langchain==0.1.0
+langchain-openai==0.0.5
+openai==1.6.1
+2. 环境变量配置（.env.example）
+env
+OPENROUTER_API_KEY=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
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+OPENROUTER_MODEL=nvidia/nemotron-3-nano-30b-a3b:free
+
+HEFENG_API_KEY=1a052ad1e44f4893a3439405f04a7719
+AMAP_API_KEY=816307678b20f6842a8dbcbd80faa20f
+3. 后端配置（backend/app/config.py）
+python
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+class Config:
+    OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+    OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL")
+    OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL")
+    HEFENG_API_KEY = os.getenv("HEFENG_API_KEY")
+    AMAP_API_KEY = os.getenv("AMAP_API_KEY")
+4. Pydantic 模型（backend/app/models/schemas.py）
+python
+from pydantic import BaseModel
+from typing import List, Optional, Dict, Any
+
+class Message(BaseModel):
+    role: str  # user, assistant, tool
+    content: str
+    tool_calls: Optional[List[Dict]] = None
+    tool_call_id: Optional[str] = None
+
+class ChatRequest(BaseModel):
+    messages: List[Message]
+    user_id: str = "default"
+
+class ToolResult(BaseModel):
+    tool_name: str
+    result: Dict[str, Any]
+
+class ChatResponse(BaseModel):
+    message: str
+    tool_results: Optional[List[ToolResult]] = None
+    map_data: Optional[Dict[str, Any]] = None  # 导航专用数据
+5. 天气服务（backend/app/services/weather_service.py）
+python
+import httpx
+from app.config import Config
+
+async def get_weather(city: str) -> dict:
+    """调用和风天气 API 获取当前天气"""
+    async with httpx.AsyncClient() as client:
+        # 第一步：获取城市ID（简化处理，直接用城市名搜索）
+        geo_url = "https://geoapi.qweather.com/v2/city/lookup"
+        geo_params = {
+            "location": city,
+            "key": Config.HEFENG_API_KEY
+        }
+        geo_resp = await client.get(geo_url, params=geo_params)
+        geo_data = geo_resp.json()
+        if geo_data.get("code") != "200" or not geo_data.get("location"):
+            return {"error": "城市未找到"}
+
+        location_id = geo_data["location"][0]["id"]
+
+        # 第二步：获取实时天气
+        weather_url = "https://devapi.qweather.com/v7/weather/now"
+        weather_params = {
+            "location": location_id,
+            "key": Config.HEFENG_API_KEY
+        }
+        weather_resp = await client.get(weather_url, params=weather_params)
+        weather_data = weather_resp.json()
+        if weather_data.get("code") != "200":
+            return {"error": "天气数据获取失败"}
+
+        return {
+            "city": geo_data["location"][0]["name"],
+            "weather": weather_data["now"]["text"],
+            "temperature": weather_data["now"]["temp"],
+            "humidity": weather_data["now"]["humidity"],
+            "wind": weather_data["now"]["windDir"] + weather_data["now"]["windScale"] + "级"
+        }
+6. 高德地图服务（backend/app/services/map_service.py）
+python
+import httpx
+from app.config import Config
+
+async def get_route(origin: str, destination: str) -> dict:
+    """调用高德地图路径规划 API，返回路线数据（用于前端地图渲染）"""
+    async with httpx.AsyncClient() as client:
+        url = "https://restapi.amap.com/v3/direction/driving"
+        params = {
+            "key": Config.AMAP_API_KEY,
+            "origin": origin,
+            "destination": destination,
+            "extensions": "all",  # 返回详细信息
+            "output": "JSON"
+        }
+        resp = await client.get(url, params=params)
+        data = resp.json()
+        if data["status"] != "1":
+            return {"error": data.get("info", "路线规划失败")}
+
+        # 提取关键数据
+        route = data["route"]["paths"][0]
+        steps = route["steps"]
+        polyline = route["polyline"]  # 坐标串，用于前端绘制路线
+        duration = int(route["duration"]) // 60  # 分钟
+        distance = float(route["distance"]) / 1000  # 公里
+
+        # 解析起点终点坐标（用于地图定位）
+        origin_coords = origin.split(",")
+        destination_coords = destination.split(",")
+
+        return {
+            "origin": {"lng": float(origin_coords[0]), "lat": float(origin_coords[1])},
+            "destination": {"lng": float(destination_coords[0]), "lat": float(destination_coords[1])},
+            "polyline": polyline,
+            "distance_km": distance,
+            "duration_min": duration,
+            "steps": [{"instruction": step["instruction"], "distance": step["distance"]} for step in steps[:5]]  # 前5个步骤
+        }
+7. AI 服务（工具调用）（backend/app/services/ai_service.py）
+python
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
+from langchain_core.tools import tool
+import json
+from app.config import Config
+from app.services.weather_service import get_weather
+from app.services.map_service import get_route
+
+# 初始化 OpenRouter LLM
+llm = ChatOpenAI(
+    openai_api_key=Config.OPENROUTER_API_KEY,
+    openai_api_base=Config.OPENROUTER_BASE_URL,
+    model_name=Config.OPENROUTER_MODEL,
+    temperature=0.7,
+    max_tokens=1000
+)
+
+# 定义工具
+@tool
+async def query_weather(city: str) -> str:
+    """查询指定城市的实时天气"""
+    result = await get_weather(city)
+    if "error" in result:
+        return f"查询天气失败：{result['error']}"
+    return f"{result['city']}当前天气：{result['weather']}，温度{result['temperature']}℃，湿度{result['humidity']}%，风向{result['wind']}"
+
+@tool
+async def plan_route(origin: str, destination: str) -> str:
+    """规划驾车路线，起点和终点格式为'经度,纬度'"""
+    result = await get_route(origin, destination)
+    if "error" in result:
+        return f"路线规划失败：{result['error']}"
+    # 返回文本描述，同时前端会单独获取完整地图数据
+    return f"从起点到终点距离{result['distance_km']:.1f}公里，预计耗时{result['duration_min']}分钟。\n路线步骤：\n" + "\n".join([step["instruction"] for step in result["steps"]])
+
+# 将工具绑定到 LLM
+tools = [query_weather, plan_route]
+llm_with_tools = llm.bind_tools(tools)
+
+async def chat_with_ai(messages: list) -> dict:
+    """
+    处理对话，自动调用工具并返回最终回复和可能的地图数据。
+    返回格式：{"content": str, "map_data": dict | None}
+    """
+    # 转换消息格式为 LangChain 消息
+    langchain_messages = []
+    for msg in messages:
+        if msg["role"] == "user":
+            langchain_messages.append(HumanMessage(content=msg["content"]))
+        elif msg["role"] == "assistant":
+            langchain_messages.append(AIMessage(content=msg["content"]))
+        elif msg["role"] == "tool":
+            langchain_messages.append(ToolMessage(content=msg["content"], tool_call_id=msg["tool_call_id"]))
+
+    # 第一次调用 LLM，可能返回工具调用
+    response = await llm_with_tools.ainvoke(langchain_messages)
+
+    # 如果有工具调用，则执行并再次调用
+    if response.tool_calls:
+        tool_results = []
+        for tool_call in response.tool_calls:
+            tool_name = tool_call["name"]
+            args = tool_call["args"]
+            if tool_name == "query_weather":
+                result = await query_weather(**args)
+            elif tool_name == "plan_route":
+                result = await plan_route(**args)
+            else:
+                result = f"未知工具：{tool_name}"
+            tool_results.append(ToolMessage(content=result, tool_call_id=tool_call["id"]))
+
+        # 将工具结果追加到消息列表，再次调用 LLM 生成最终回复
+        final_messages = langchain_messages + [response] + tool_results
+        final_response = await llm.ainvoke(final_messages)
+        content = final_response.content
+
+        # 检查工具结果中是否有路线规划数据，如果有，提取地图数据
+        map_data = None
+        for tool_msg in tool_results:
+            # 如果工具是 plan_route，从消息内容中提取（需要从原始结果获取，但这里简化：再次调用 get_route 获取完整数据）
+            # 更优雅的方式是在 tool 执行时返回完整数据，这里为了简洁，再次调用
+            if tool_msg.content and "公里" in tool_msg.content and "分钟" in tool_msg.content:
+                # 我们需要原始参数，可以从之前的 tool_call 获取
+                # 为了简单，我们假设前端会传入起点终点坐标，我们这里不处理，直接返回 None
+                # 实际上，我们需要在 tool 执行时把详细数据存入某个地方，或者用全局变量
+                # 这里为了演示，我们在工具中把完整数据存储到上下文中（不推荐），更好的做法是让工具返回文本和数据结构，但 langchain 工具只能返回字符串。
+                # 我们可以在 plan_route 工具中把数据存到某个字典，这里简单处理：再调用一次 get_route
+                # 注意：需要从 tool_call 获取参数，但我们已经不在作用域了，所以需要重构。
+                pass
+        return {"content": content, "map_data": map_data}
+    else:
+        return {"content": response.content, "map_data": None}
+上面的 chat_with_ai 函数对工具返回的地图数据处理不够优雅。我们需要重构工具，使其能够返回结构化数据（不仅文本）给前端。但 LangChain 工具只返回字符串，因此我们可以采用另一种方式：在工具内部将完整数据保存到一个临时存储（如会话），然后在最终响应中附加。或者我们让前端在收到工具调用后，单独请求地图数据。但为了简化，我们可以在 plan_route 工具中同时返回文本和存储数据，并在 AI 服务中检测到工具调用时，将地图数据返回给前端。
+
+优化方案：修改 plan_route 工具，使其返回一个包含文本和完整数据的对象，但 langchain 工具要求返回字符串。我们可以返回一个 JSON 字符串，前端解析。同时，AI 服务在调用工具后，将解析出的地图数据单独提取出来。
+
+我们将在下一部分实现这个优化，并完成后端主入口。
+
+由于篇幅限制，第一部分结束。请回复 “继续”，我将输出剩余的后端代码（完善 AI 服务、FastAPI 主文件）以及前端代码。
+
+继续
+我们继续输出剩余的后端代码，包括优化后的AI服务、FastAPI主入口、以及前端Vue3应用。
+
+8. 优化后的 AI 服务（工具返回结构化数据）
+为了能让路线规划工具同时返回文本描述和完整地图数据给前端，我们让工具返回一个 JSON 字符串，前端解析后可以提取地图数据。同时，在 AI 服务中，如果检测到工具调用，我们将解析出的地图数据传递给最终响应。
+
+backend/app/services/ai_service.py（改进版）
+
+python
+import json
+from typing import Dict, Any, List
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
+from langchain_core.tools import tool
+from app.config import Config
+from app.services.weather_service import get_weather
+from app.services.map_service import get_route
+
+llm = ChatOpenAI(
+    openai_api_key=Config.OPENROUTER_API_KEY,
+    openai_api_base=Config.OPENROUTER_BASE_URL,
+    model_name=Config.OPENROUTER_MODEL,
+    temperature=0.7,
+    max_tokens=1000
+)
+
+@tool
+async def query_weather(city: str) -> str:
+    """查询指定城市的实时天气"""
+    result = await get_weather(city)
+    if "error" in result:
+        return json.dumps({"type": "weather", "error": result["error"]})
+    return json.dumps({
+        "type": "weather",
+        "city": result["city"],
+        "weather": result["weather"],
+        "temperature": result["temperature"],
+        "humidity": result["humidity"],
+        "wind": result["wind"],
+        "text": f"{result['city']}当前天气：{result['weather']}，温度{result['temperature']}℃，湿度{result['humidity']}%，风向{result['wind']}"
+    })
+
+@tool
+async def plan_route(origin: str, destination: str) -> str:
+    """规划驾车路线，起点和终点格式为'经度,纬度'"""
+    result = await get_route(origin, destination)
+    if "error" in result:
+        return json.dumps({"type": "route", "error": result["error"]})
+    # 返回完整数据，包括地图绘制所需的 polyline 等
+    return json.dumps({
+        "type": "route",
+        "origin": result["origin"],
+        "destination": result["destination"],
+        "polyline": result["polyline"],
+        "distance_km": result["distance_km"],
+        "duration_min": result["duration_min"],
+        "steps": result["steps"],
+        "text": f"从起点到终点距离{result['distance_km']:.1f}公里，预计耗时{result['duration_min']}分钟。\n路线步骤：\n" + "\n".join([step["instruction"] for step in result["steps"]])
+    })
+
+tools = [query_weather, plan_route]
+llm_with_tools = llm.bind_tools(tools)
+
+async def chat_with_ai(messages: List[Dict]) -> Dict[str, Any]:
+    """
+    处理对话，自动调用工具并返回最终回复和可能的地图数据。
+    返回格式：{"content": str, "map_data": dict | None}
+    """
+    langchain_messages = []
+    for msg in messages:
+        if msg["role"] == "user":
+            langchain_messages.append(HumanMessage(content=msg["content"]))
+        elif msg["role"] == "assistant":
+            langchain_messages.append(AIMessage(content=msg["content"]))
+        elif msg["role"] == "tool":
+            langchain_messages.append(ToolMessage(content=msg["content"], tool_call_id=msg["tool_call_id"]))
+
+    response = await llm_with_tools.ainvoke(langchain_messages)
+
+    if response.tool_calls:
+        tool_results = []
+        map_data = None
+        for tool_call in response.tool_calls:
+            tool_name = tool_call["name"]
+            args = tool_call["args"]
+            if tool_name == "query_weather":
+                result_str = await query_weather(**args)
+            elif tool_name == "plan_route":
+                result_str = await plan_route(**args)
+            else:
+                result_str = json.dumps({"type": "unknown", "error": f"未知工具：{tool_name}"})
+            # 解析返回的 JSON，如果包含地图数据则提取
+            try:
+                result_obj = json.loads(result_str)
+                if result_obj.get("type") == "route" and "polyline" in result_obj:
+                    map_data = result_obj  # 保存完整地图数据
+            except:
+                pass
+            tool_results.append(ToolMessage(content=result_str, tool_call_id=tool_call["id"]))
+
+        final_messages = langchain_messages + [response] + tool_results
+        final_response = await llm.ainvoke(final_messages)
+        content = final_response.content
+        return {"content": content, "map_data": map_data}
+    else:
+        return {"content": response.content, "map_data": None}
+9. FastAPI 主入口（backend/app/main.py）
+python
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from app.models.schemas import ChatRequest, ChatResponse, ToolResult
+from app.services.ai_service import chat_with_ai
+import uuid
+
+app = FastAPI(title="AI Travel Assistant API")
+
+# 允许前端跨域
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 生产环境应指定具体域名
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.post("/api/chat", response_model=ChatResponse)
+async def chat_endpoint(request: ChatRequest):
+    """对话接口，支持工具调用"""
+    try:
+        # 转换消息格式（简化）
+        messages = [msg.dict() for msg in request.messages]
+        result = await chat_with_ai(messages)
+        return ChatResponse(
+            message=result["content"],
+            map_data=result.get("map_data")
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/health")
+async def health():
+    return {"status": "ok"}
+10. 后端启动文件（backend/run.py）
+python
+import uvicorn
+from app.main import app
+
+if __name__ == "__main__":
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+11. 前端依赖（frontend/package.json）
+json
+{
+  "name": "ai-travel-assistant",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vue": "^3.3.4",
+    "axios": "^1.6.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.5.0",
+    "vite": "^5.0.0"
+  }
+}
+12. 前端入口（frontend/index.html）
+html
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI出行助手</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        background-color: #f5f7fa;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
+13. Vue3 主文件（frontend/src/main.js）
+javascript
+import { createApp } from 'vue'
+import App from './App.vue'
+import './style.css'
+
+createApp(App).mount('#app')
+14. 全局样式（frontend/src/style.css）
+css
+:root {
+  --primary-color: #3b82f6;
+  --bg-color: #f5f7fa;
+  --chat-bg: #ffffff;
+  --user-bubble: #3b82f6;
+  --assistant-bubble: #e5e7eb;
+  --border-radius: 12px;
+}
+
+body {
+  background-color: var(--bg-color);
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+15. API 服务（frontend/src/services/api.js）
+javascript
+import axios from 'axios';
+
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api';
+
+export async function sendMessage(messages) {
+  const response = await axios.post(`${API_BASE}/chat`, { messages, user_id: 'default' });
+  return response.data;
+}
+16. 高德地图组件（frontend/src/components/MapView.vue）
+vue
+<template>
+  <div class="map-container" ref="mapContainer"></div>
+</template>
+
+<script setup>
+import { ref, onMounted, watch } from 'vue';
+
+const props = defineProps({
+  routeData: {
+    type: Object,
+    default: null
+  }
+});
+
+const mapContainer = ref(null);
+let map = null;
+let polyline = null;
+let markers = [];
+
+const loadAMapScript = () => {
+  return new Promise((resolve, reject) => {
+    if (window.AMap) {
+      resolve(window.AMap);
+      return;
+    }
+    const script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = `https://webapi.amap.com/maps?v=2.0&key=816307678b20f6842a8dbcbd80faa20f&callback=initAMap`;
+    script.onerror = reject;
+    window.initAMap = () => {
+      resolve(window.AMap);
+    };
+    document.head.appendChild(script);
+  });
+};
+
+const initMap = async () => {
+  const AMap = await loadAMapScript();
+  map = new AMap.Map(mapContainer.value, {
+    zoom: 12,
+    center: [116.397428, 39.90923], // 默认北京
+    viewMode: '2D'
+  });
+};
+
+const clearMap = () => {
+  if (polyline) {
+    map.remove(polyline);
+    polyline = null;
+  }
+  markers.forEach(marker => map.remove(marker));
+  markers = [];
+};
+
+const drawRoute = (data) => {
+  if (!map) return;
+  clearMap();
+
+  const AMap = window.AMap;
+  const { origin, destination, polyline: polylineStr } = data;
+
+  // 解析 polyline 坐标串（高德返回的是 "x1,y1;x2,y2;..."）
+  const path = polylineStr.split(';').map(point => {
+    const [lng, lat] = point.split(',');
+    return [parseFloat(lng), parseFloat(lat)];
+  });
+
+  // 绘制路线
+  polyline = new AMap.Polyline({
+    path,
+    strokeColor: '#3b82f6',
+    strokeWeight: 6,
+    strokeOpacity: 0.8,
+    strokeStyle: 'solid'
+  });
+  map.add(polyline);
+
+  // 添加起点终点标记
+  const startMarker = new AMap.Marker({
+    position: [origin.lng, origin.lat],
+    title: '起点',
+    icon: 'https://webapi.amap.com/theme/v1.3/markers/n/start.png'
+  });
+  const endMarker = new AMap.Marker({
+    position: [destination.lng, destination.lat],
+    title: '终点',
+    icon: 'https://webapi.amap.com/theme/v1.3/markers/n/end.png'
+  });
+  markers.push(startMarker, endMarker);
+  map.add(markers);
+
+  // 调整视野包含整条路线
+  map.setFitView([polyline, startMarker, endMarker]);
+};
+
+watch(() => props.routeData, (newData) => {
+  if (newData && newData.type === 'route' && newData.polyline) {
+    drawRoute(newData);
+  }
+}, { deep: true });
+
+onMounted(() => {
+  initMap();
+});
+</script>
+
+<style scoped>
+.map-container {
+  width: 100%;
+  height: 300px;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  margin-top: 12px;
+}
+</style>
+17. 消息气泡组件（frontend/src/components/MessageBubble.vue）
+vue
+<template>
+  <div class="message" :class="[role]">
+    <div class="avatar">
+      <img v-if="role === 'assistant'" src="/bot-avatar.png" alt="AI" />
+      <span v-else>我</span>
+    </div>
+    <div class="content">
+      <div class="text" v-html="formattedContent"></div>
+      <!-- 如果消息包含地图数据，显示地图组件 -->
+      <MapView v-if="role === 'assistant' && mapData" :routeData="mapData" />
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed } from 'vue';
+import MapView from './MapView.vue';
+
+const props = defineProps({
+  role: {
+    type: String,
+    required: true,
+    validator: (val) => ['user', 'assistant'].includes(val)
+  },
+  content: {
+    type: String,
+    required: true
+  },
+  mapData: {
+    type: Object,
+    default: null
+  }
+});
+
+const formattedContent = computed(() => {
+  // 简单的换行和链接处理
+  return props.content.replace(/\n/g, '<br>');
+});
+</script>
+
+<style scoped>
+.message {
+  display: flex;
+  margin-bottom: 20px;
+  animation: fadeIn 0.3s ease;
+}
+
+.message.user {
+  justify-content: flex-end;
+}
+
+.message.user .avatar {
+  order: 2;
+  margin-left: 12px;
+  margin-right: 0;
+}
+
+.message.user .content {
+  background-color: var(--user-bubble);
+  color: white;
+  order: 1;
+}
+
+.message.assistant .content {
+  background-color: var(--assistant-bubble);
+  color: #1f2937;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  margin-right: 12px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.content {
+  max-width: 70%;
+  padding: 12px 16px;
+  border-radius: var(--border-radius);
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.text {
+  white-space: pre-wrap;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+</style>
+18. 聊天窗口组件（frontend/src/components/ChatWindow.vue）
+vue
+<template>
+  <div class="chat-window">
+    <div class="messages-container" ref="messagesContainer">
+      <MessageBubble
+        v-for="(msg, idx) in messages"
+        :key="idx"
+        :role="msg.role"
+        :content="msg.content"
+        :mapData="msg.mapData"
+      />
+      <div v-if="loading" class="loading-indicator">
+        <span>AI 正在思考...</span>
+      </div>
+    </div>
+    <div class="input-area">
+      <textarea
+        v-model="inputText"
+        @keydown.enter.prevent="sendMessage"
+        placeholder="输入你的问题，例如：从北京西站到天安门怎么走？或者北京今天天气怎么样？"
+        rows="1"
+      ></textarea>
+      <button @click="sendMessage" :disabled="!inputText.trim() || loading">
+        发送
+      </button>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, nextTick, onMounted } from 'vue';
+import MessageBubble from './MessageBubble.vue';
+import { sendMessage as apiSendMessage } from '../services/api';
+
+const messages = ref([]);
+const inputText = ref('');
+const loading = ref(false);
+const messagesContainer = ref(null);
+
+const scrollToBottom = () => {
+  nextTick(() => {
+    if (messagesContainer.value) {
+      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
+    }
+  });
+};
+
+const sendMessage = async () => {
+  const text = inputText.value.trim();
+  if (!text) return;
+  inputText.value = '';
+
+  // 添加用户消息
+  messages.value.push({ role: 'user', content: text });
+  scrollToBottom();
+
+  loading.value = true;
+  try {
+    const response = await apiSendMessage(messages.value);
+    // 添加 AI 消息，可能包含地图数据
+    messages.value.push({
+      role: 'assistant',
+      content: response.message,
+      mapData: response.map_data || null
+    });
+    scrollToBottom();
+  } catch (error) {
+    console.error('发送失败', error);
+    messages.value.push({
+      role: 'assistant',
+      content: '抱歉，发生了错误，请稍后重试。',
+      mapData: null
+    });
+    scrollToBottom();
+  } finally {
+    loading.value = false;
+  }
+};
+
+onMounted(() => {
+  // 欢迎语
+  messages.value.push({
+    role: 'assistant',
+    content: '你好！我是你的智能出行助手。我可以帮你查询天气、规划驾车路线。试试问我："从北京西站到天安门怎么走？" 或 "上海今天天气怎么样？"',
+    mapData: null
+  });
+});
+</script>
+
+<style scoped>
+.chat-window {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--chat-bg);
+  border-radius: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.messages-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.loading-indicator {
+  text-align: center;
+  color: #9ca3af;
+  padding: 12px;
+  font-size: 14px;
+}
+
+.input-area {
+  display: flex;
+  padding: 16px 20px;
+  border-top: 1px solid #e5e7eb;
+  background-color: white;
+  gap: 12px;
+}
+
+.input-area textarea {
+  flex: 1;
+  border: 1px solid #e5e7eb;
+  border-radius: 24px;
+  padding: 12px 16px;
+  font-size: 14px;
+  resize: none;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.input-area textarea:focus {
+  border-color: var(--primary-color);
+}
+
+.input-area button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 24px;
+  padding: 0 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.input-area button:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+.input-area button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+</style>
+19. 根组件 App.vue（frontend/src/App.vue）
+vue
+<template>
+  <div class="app">
+    <header class="header">
+      <h1>智行侠 · AI出行助手</h1>
+      <p>智能规划 · 实时天气 · 一键导航</p>
+    </header>
+    <main class="main">
+      <ChatWindow />
+    </main>
+  </div>
+</template>
+
+<script setup>
+import ChatWindow from './components/ChatWindow.vue';
+</script>
+
+<style scoped>
+.app {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-color);
+}
+
+.header {
+  text-align: center;
+  padding: 20px;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.header h1 {
+  font-size: 24px;
+  color: #1f2937;
+  margin-bottom: 8px;
+}
+
+.header p {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.main {
+  flex: 1;
+  max-width: 1000px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+</style>
+20. Vite 配置（frontend/vite.config.js）
+javascript
+import { defineConfig } from 'vite';
+import vue from '@vitejs/plugin-vue';
+
+export default defineConfig({
+  plugins: [vue()],
+  server: {
+    port: 5173,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      }
+    }
+  }
+});
+21. 环境变量示例（frontend/.env.example）
+text
+VITE_API_BASE=/api
+运行说明
+后端
+进入 backend 目录，创建虚拟环境（可选），安装依赖：
+
+text
+pip install -r requirements.txt
+复制 .env.example 为 .env，填入你的 API Key（已提供，但建议使用自己的）。
+
+运行：
+
+text
+python run.py
+后端将在 http://localhost:8000 启动。
+
+前端
+进入 frontend 目录，安装依赖：
+
+text
+npm install
+复制 .env.example 为 .env，根据需要修改 API 地址。
+
+运行：
+
+text
+npm run dev
+前端将在 http://localhost:5173 启动，访问即可使用。
+
+项目功能总结
+用户输入问题（如查询天气、路线规划）。
+
+AI 智能判断是否需要调用工具。
+
+如果是天气查询，调用和风天气 API，返回天气信息。
+
+如果是路线规划，调用高德地图 API，返回路线文本描述，并在对话气泡内嵌入高德地图可视化路线。
+
+对话支持多轮，可连续提问。
+
+界面简约大气，适配移动端和桌面端。
+
+至此，完整的企业级项目代码已全部输出。 你只需要按照上述步骤配置并运行即可。
+
+下面是强烈要求：
+必须反复测试每一个功能，直到完全可以正常使用和运行，才可结束任务
+测试文件需删掉
