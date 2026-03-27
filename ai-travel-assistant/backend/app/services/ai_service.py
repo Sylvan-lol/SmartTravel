@@ -21,8 +21,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # 初始化 OpenAI 客户端（使用 OpenRouter API）
-api_key = "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"
-base_url = "https://openrouter.ai/api/v1"
+api_key = "your apikey"
+base_url = "your url"
 
 client = OpenAI(
     api_key=api_key,
@@ -30,7 +30,7 @@ client = OpenAI(
 )
 
 # 使用的模型
-MODEL = "nvidia/nemotron-3-nano-30b-a3b:free"
+MODEL = "your model"
 
 # 初始化 LangChain ChatOpenAI
 chat_model = ChatOpenAI(
@@ -464,9 +464,9 @@ async def chat_with_ai(messages: List[Dict]) -> Dict[str, Any]:
         例如：
         - 如果用户问"北京的天气怎么样？"，你应该调用query_weather工具，参数city为"北京"
         - 如果用户问"从北京到上海怎么去？"，你应该调用get_route_info工具，参数start_city为"北京"，end_city为"上海"，transport_type为"driving"
-        - 如果用户问"从佛山到惠州坐高铁怎么做？"，你应该调用get_route_info工具，参数start_city为"佛山"，end_city为"惠州"，transport_type为"highspeed"
+        - 如果用户问"从北京到香港坐高铁怎么做？"，你应该调用get_route_info工具，参数start_city为"北京"，end_city为"香港"，transport_type为"highspeed"
         - 如果用户说"我想上传一份关于北京旅游的资料"，你应该调用upload_document工具，参数content为文档内容，title为"北京旅游资料"
-        - 如果用户问"北京有哪些著名景点？"，你应该调用retrieve_info工具，参数query为"北京著名景点"
+        - 如果用户问"台北有哪些著名景点？"，你应该调用retrieve_info工具，参数query为"台北著名景点"
         """
         
         # 构建完整的消息列表
