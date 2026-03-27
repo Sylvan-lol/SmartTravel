@@ -8,7 +8,7 @@ async def get_route(origin: str, destination: str) -> dict:
     """调用高德地图路径规划 API，返回路线数据（用于前端地图渲染）"""
     try:
         async with httpx.AsyncClient() as client:
-            url = "your url like: https://restapi.amap.com/v3/direction/driving"
+            url = "your url like: https://restapi.amap.com/v3/direction/driving, i use Gaode API of China, u can use any API u want, but remember to change your code interface"
             params = {
                 "key": Config.AMAP_API_KEY,
                 "origin": origin,
