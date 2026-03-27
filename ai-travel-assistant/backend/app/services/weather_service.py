@@ -8,7 +8,7 @@ async def get_weather(city: str) -> dict:
     """调用高德地图 API 获取当前天气"""
     try:
         async with httpx.AsyncClient() as client:
-            url = "https://restapi.amap.com/v3/weather/weatherInfo"
+            url = "your url like: https://restapi.amap.com/v3/weather/weatherInfo, i use Gaode API of China, u can use any API u want, but remember to change your code interface"
             params = {
                 "key": Config.AMAP_API_KEY,
                 "city": city,
